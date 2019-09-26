@@ -20,9 +20,7 @@ class AdversarialModel:
 
         # Initialisation du discriminateur:
         self.discriminator = discriminator.model
-        self.discriminator.compile(loss='binary_crossentropy',
-                                         optimizer=discriminator.optimizer,
-                                         metrics=['accuracy'])
+        self.discriminator.compile(loss='binary_crossentropy', optimizer=discriminator.optimizer, metrics=['accuracy'])
         self.discriminator.summary()
 
         # Initialisation du générateur:
@@ -33,14 +31,15 @@ class AdversarialModel:
         self.discriminator.trainable = False
         out = self.discriminator(img_gen)
         self.AM = Model(z, out)
-        self.AM.compile(loss='binary_crossentropy',
-                        optimizer=generator.optimizer,
-                        metrics=['accuracy'])
+        self.AM.compile(loss='binary_crossentropy', optimizer=generator.optimizer, metrics=['accuracy'])
         self.AM.summary()
 
     def train(self, dataset, batch_size, save_interval, epochs):
         """
-
+        dataset:
+        batch_size:
+        save_intervals:
+        epochs:
         """
         valid = np.ones((batch_size, 1))
         fake = np.zeros((batch_size, 1))
@@ -50,15 +49,15 @@ class AdversarialModel:
             # ---------------------
             # Choisisons au hasard dans le jeu de données "batch_size" images
             idx = np.random.randint(0, dataset.shape[0], batch_size)
-            imgs = dataset[idx]
+            imgs = np.expand_dims(dataset[idx], axis=4)
 
             # Sample noise and generate a batch of new images
-            noise = np.random.normal(0, 1, (batch_size, self.generator.latent_start))
-            gen_imgs = self.generator.model.predict(noise)
+            noise = np.random.normal(0, 1, (batch_size, self.latent_dim))
+            gen_imgs = self.generator.predict(noise)
 
             # Train the discriminator (real classified as ones and generated as zeros)
-            d_loss_real = self.discriminator.model.train_on_batch(imgs, valid)
-            d_loss_fake = self.discriminator.model.train_on_batch(gen_imgs, fake)
+            d_loss_real = self.discriminator.train_on_batch(imgs, valid)
+            d_loss_fake = self.discriminator.train_on_batch(gen_imgs, fake)
             d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
 
             # ---------------------
@@ -68,11 +67,11 @@ class AdversarialModel:
             g_loss = self.AM.train_on_batch(noise, valid)
 
             # Plot the progress
-            print("%d [D loss: %f, acc.: %.2f%%] [G loss: %f]" % (epoch, d_loss[0], 100*d_loss[1], g_loss))
+            print("{} [D loss: {}, acc.: {}] [G loss: {}]".format(epoch, d_loss[0], 100*d_loss[1], g_loss))
 
-            # If at save interval => save generated image samples
-            if epoch % save_interval == 0:
-                self.visulazisation(epoch, 3, 3)
+            # On garde une visualisation pour chaque epoch
+            #if epoch % save_interval == 0:
+            #    self.visulazisation(epoch, 3, 3)
 
     def visulazisation(self, epoch, row, column):
         """Sauver et voir l'apprentissage"""
