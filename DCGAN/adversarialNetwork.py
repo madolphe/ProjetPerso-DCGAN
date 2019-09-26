@@ -4,39 +4,39 @@ from keras.models import Model
 from keras.layers import Input
 
 
-
 class AdversarialModel:
     def __init__(self, discriminator, generator, img_rows=28, img_cols=28, channels=1,
                  latent_dim=100):
         """
-
         Constructeur intialisant les optimizers et la perte
 
         """
-        # Load the dataset
+        # Chargement du jeu de données et paramétrage des images à traiter:
         self.img_rows = img_rows
         self.img_cols = img_cols
         self.channels = channels
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
         self.latent_dim = latent_dim
 
-        self.discriminator = discriminator
-        self.discriminator.model.compile(loss='binary_crossentropy',
-                                         optimizer=self.discriminator.optimizer,
+        # Initialisation du discriminateur:
+        self.discriminator = discriminator.model
+        self.discriminator.compile(loss='binary_crossentropy',
+                                         optimizer=discriminator.optimizer,
                                          metrics=['accuracy'])
-        self.generator = generator
+        self.discriminator.summary()
 
-        # The generator takes noise as input and generates imgs
+        # Initialisation du générateur:
+        self.generator = generator.model
         z = Input(shape=(self.latent_dim,))
-        img_gen = self.generator.model(z)
-        # Pour le modèle combiné on entraîne seulement le gen
-
-        self.discriminator.model.trainable = False
-        out = self.discriminator.model(img_gen)
+        img_gen = self.generator(z)
+        # Pour le modèle combiné on entraîne seulement le generateur:
+        self.discriminator.trainable = False
+        out = self.discriminator(img_gen)
         self.AM = Model(z, out)
         self.AM.compile(loss='binary_crossentropy',
-                        optimizer=self.generator.optimizer,
+                        optimizer=generator.optimizer,
                         metrics=['accuracy'])
+        self.AM.summary()
 
     def train(self, dataset, batch_size, save_interval, epochs):
         """
@@ -46,7 +46,7 @@ class AdversarialModel:
         fake = np.zeros((batch_size, 1))
         for epoch in range(epochs):
             # ---------------------
-            #  Train Discriminator
+            #  Entrainement discriminateur
             # ---------------------
             # Choisisons au hasard dans le jeu de données "batch_size" images
             idx = np.random.randint(0, dataset.shape[0], batch_size)
@@ -62,7 +62,7 @@ class AdversarialModel:
             d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
 
             # ---------------------
-            #  Train Generator
+            #  Entrainement du generateur
             # ---------------------
             # Train the generator (wants discriminator to mistake images as real)
             g_loss = self.AM.train_on_batch(noise, valid)
